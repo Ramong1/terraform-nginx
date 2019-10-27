@@ -1,7 +1,7 @@
 # terraform-nginx
 Deploy an ubuntu VM on Azure. Install nginx using salt and run it on multiple ports.
 
-To use you will need to create a terraform.tfvars file and place it in the same directory as the main.tf and variables.tf files. In your terraform.tfvars file you will need to populate the values for the defined variables with what works for you. For example,
+To use you will need to populate the terraform.tfvars file variables with what works for you. For example,
 
 
 location = "prefered location"
