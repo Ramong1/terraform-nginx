@@ -1,16 +1,14 @@
 
 # Configure the Microsoft Azure Provider
-provider "azurerm" {
-
-}
+provider "azurerm" { }
 
 # Create a resource group if it doesn’t exist
 resource "azurerm_resource_group" "myterraformgroup" {
     name     = "TerraformResourceGroup"
-    location = "eastus"
+    location = var.location
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.tags
     }
 }
 
@@ -18,11 +16,11 @@ resource "azurerm_resource_group" "myterraformgroup" {
 resource "azurerm_virtual_network" "myterraformnetwork" {
     name                = "myVnet"
     address_space       = ["10.0.0.0/16"]
-    location            = "eastus"
+    location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.tags
     }
 }
 
@@ -37,66 +35,66 @@ resource "azurerm_subnet" "myterraformsubnet" {
 # Create public IPs
 resource "azurerm_public_ip" "myterraformpublicip" {
     name                         = "myPublicIP"
-    location                     = "eastus"
+    location                     = var.location
     resource_group_name          = azurerm_resource_group.myterraformgroup.name
     allocation_method            = "Dynamic"
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.tags
     }
 }
 
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "ssh-access" {
     name                = "myNetworkSecurityGroup"
-    location            = "eastus"
+    location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
     
   security_rule {
-name = "AllowSSH"
-priority = 100
-direction = "Inbound"
-access         = "Allow"
-protocol = "Tcp"
-source_port_range       = "*"
+    name = "AllowSSH"
+    priority = 100
+    direction = "Inbound"
+    access         = "Allow"
+    protocol = "Tcp"
+    source_port_range       = "*"
     destination_port_range     = "22"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
   security_rule {
-name = "AllowHTTP"
-priority= 200
-direction= "Inbound"
-access = "Allow"
-protocol = "Tcp"
-source_port_range       = "*"
+    name = "AllowHTTP"
+    priority= 200
+    direction= "Inbound"
+    access = "Allow"
+    protocol = "Tcp"
+    source_port_range       = "*"
     destination_port_range     = "80"
     source_address_prefix      = "Internet"
     destination_address_prefix = "*"
   }
 
   security_rule {
-name = "HTTP3200"
-priority= 300
-direction= "Inbound"
-access = "Allow"
-protocol = "Tcp"
-source_port_range       = "*"
+    name = "HTTP3200"
+    priority= 300
+    direction= "Inbound"
+    access = "Allow"
+    protocol = "Tcp"
+    source_port_range       = "*"
     destination_port_range     = "3200"
     source_address_prefix      = "Internet"
     destination_address_prefix = "*"
   }
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.tags
     }
 }
 
 # Create network interface
 resource "azurerm_network_interface" "myterraformnic" {
     name                      = "myNIC"
-    location                  = "eastus"
+    location                  = var.location
     resource_group_name       = azurerm_resource_group.myterraformgroup.name
     network_security_group_id = azurerm_network_security_group.ssh-access.id
 
@@ -108,7 +106,7 @@ resource "azurerm_network_interface" "myterraformnic" {
     }
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.tags
     }
 }
 
@@ -126,19 +124,19 @@ resource "random_id" "randomId" {
 resource "azurerm_storage_account" "mystorageaccount" {
     name                        = "diag${random_id.randomId.hex}"
     resource_group_name         = azurerm_resource_group.myterraformgroup.name
-    location                    = "eastus"
+    location                    = var.location
     account_tier                = "Standard"
     account_replication_type    = "LRS"
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.tags
     }
 }
 
 # Create virtual machine
 resource "azurerm_virtual_machine" "myterraformvm" {
     name                  = "nginx-1"
-    location              = "eastus"
+    location              = var.location
     resource_group_name   = azurerm_resource_group.myterraformgroup.name
     network_interface_ids = [azurerm_network_interface.myterraformnic.id]
     vm_size               = "Standard_DS1_v2"
@@ -153,20 +151,20 @@ resource "azurerm_virtual_machine" "myterraformvm" {
     storage_image_reference {
         publisher = "Canonical"
         offer     = "UbuntuServer"
-        sku       = "16.04.0-LTS"
+        sku       = lookup(var.sku, var.location)
         version   = "latest"
     }
 
     os_profile {
-        computer_name  = "nginx1"
-        admin_username = "az-user"
+        computer_name  = var.computer_name
+        admin_username = var.admin_username
     }
 
     os_profile_linux_config {
         disable_password_authentication = true
         ssh_keys {
-            path     = "/home/az-user/.ssh/authorized_keys"
-            key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDIdoA+q/0PrRdl9mqlEzAFTDo8Zjse1zBCWce5HXsbxYtEkuUi182PNK/pdxgBA8Tijmi45Miu9bJ+xH9UGtBrXMcJtZ9OAe88demuhiRHXzFzgzPIfB+gMdzWt09B6+/PllZS7IfqBJVaX8PZpKKQE7QLvkkXr07ETNE2SfD3vPaPzFrMVgoZlqmdoSHVyG+mxyiV3X/Lt9gPYdA3XxI6onVmXM3ggQTneFGoY/bVuWZxOohh6GvfjiTJBrkK19loRMUHMUHsHFI4z7C5fGlMR91F/SuquwPfG4DT6qeC2PYoq3dTxY5NQscz8EmFrX+bz20Ss/Xt2DfTkhb8fyip"
+            path     = var.key_path
+            key_data = var.key_data
         }
     }
 
@@ -176,13 +174,21 @@ resource "azurerm_virtual_machine" "myterraformvm" {
     }
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.tags
     }
+}
+
+output "ip" {
+    value = azurerm_public_ip.myterraformpublicip.ip_address
+}
+
+output "os_sku" {
+    value = lookup(var.sku, var.location)
 }
 
 resource "azurerm_virtual_machine_extension" "script" {
   name                 = "nginx-1"
-  location             = "eastus"
+  location             = var.location
   resource_group_name  = azurerm_resource_group.myterraformgroup.name
   virtual_machine_name = azurerm_virtual_machine.myterraformvm.name
   publisher            = "Microsoft.Azure.Extensions"
@@ -197,7 +203,7 @@ resource "azurerm_virtual_machine_extension" "script" {
 SETTINGS
 
   tags = {
-    environment = "Terraform Demo"
+    environment = var.tags
   }
 
 }
