@@ -178,14 +178,6 @@ resource "azurerm_virtual_machine" "myterraformvm" {
     }
 }
 
-output "ip" {
-    value = azurerm_public_ip.myterraformpublicip.ip_address
-}
-
-output "os_sku" {
-    value = lookup(var.sku, var.location)
-}
-
 resource "azurerm_virtual_machine_extension" "script" {
   name                 = "nginx-1"
   location             = var.location
