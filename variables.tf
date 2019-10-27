@@ -25,7 +25,6 @@ variable "tags" {
     description = "Environment tag for virtual machine."
 }
 
-
 variable "sku" {
     default = {
         westus = "16.04-LTS"
